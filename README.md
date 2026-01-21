@@ -9,13 +9,13 @@ might redirect to one of:
 https://redcap.example.edu/surveys/?s=12345678&email=foo@bar.baz&ts=1769010749&cn=2772222584
 https://redcap.example.edu/surveys/?s=abcdef12&email=foo@bar.baz&ts=1769010749&cn=2772222584
 
-This process merges URL parameters, with configuration-provided parmeters taking precedence.
+This process merges URL parameters, with configuration-provided parameters taking precedence.
 
 This randomization is stable -- the same initial link will randomize to the same target, even if the available list of studies changes.
 
 ## Implementation
 
-We're going to use python and fastapi to build this tiny little app. Configuration will be passed to it via environment variables and pydantic-settings.
+This project uses python and fastapi. It does not have a traditional database; it uses text files stored in the filesystem. This should be performant enough for up to a few hundred thousand unique redirect URLs.
 
 Required settings:
 
@@ -65,13 +65,21 @@ Weights must be nonnegative real numbers. Weights are relative -- all weights ar
 
 Contains a set of files with names as lowercase sha256 hex digests. The contents of each file will be a single URL, optionally terminated with a newline. File contents should be trimmed of whitespace before redirecting to URLs. URL format will not be checked before redirecting.
 
+**Important:** `LOOKUP_DIR` should be on a local filesystem that supports POSIX file locking (e.g., ext4, APFS). Network filesystems (NFS, SMB) may not provide reliable locking semantics and could lead to race conditions.
+
 ## Troubleshooting
 
 Did a bad redirect wind up in LOOKUP_DIR? Find the file with the bad lookup (use something like `grep`) and edit or delete it.
 
+## Developing
+
+Before comitting changes, make sure `uv run pytest` and `uv run ty check` pass without errors.
+
 ## Credits
 
 Written by Nate Vack <njvack@wisc.edu> at the Center for Healthy Minds, UW-Madison.
+
+This work was supported by National Institute of Mental Health under grant 1R01MH139512-01: Optimizing the integration between human and digital support in a meditation app for depression and anxiety
 
 ## Copyright
 

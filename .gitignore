@@ -138,6 +138,10 @@ celerybeat.pid
 .env
 .envrc
 .venv
+
+# Local data (lookups, studies file)
+data/
+!data/studies.example.tsv
 env/
 venv/
 ENV/

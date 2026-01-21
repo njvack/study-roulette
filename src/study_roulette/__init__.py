@@ -1,2 +1,3 @@
-def hello() -> str:
-    return "Hello from study-roulette!"
+from .app import build_app
+
+__all__ = ["build_app"]
