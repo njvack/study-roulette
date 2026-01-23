@@ -1,10 +1,13 @@
 import fcntl
 import hashlib
 import json
+import logging
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from .studies import Study, choose_study, parse_studies_file
+
+logger = logging.getLogger(__name__)
 
 
 def compute_hash(params: dict[str, list[str]]) -> str:
@@ -16,7 +19,9 @@ def compute_hash(params: dict[str, list[str]]) -> str:
     # Sort the keys and sort the values within each key for stability
     sorted_params = {k: sorted(v) for k, v in sorted(params.items())}
     param_str = json.dumps(sorted_params, sort_keys=True)
-    return hashlib.sha256(param_str.encode()).hexdigest()
+    hash_value = hashlib.sha256(param_str.encode()).hexdigest()
+    logger.debug("Computed hash %s for params: %s", hash_value[:12], sorted_params)
+    return hash_value
 
 
 def merge_urls(base_url: str, incoming_params: dict[str, list[str]]) -> str:
@@ -35,12 +40,18 @@ def merge_urls(base_url: str, incoming_params: dict[str, list[str]]) -> str:
     # Rebuild the URL with merged parameters
     new_query = urlencode(merged, doseq=True)
     new_parsed = parsed._replace(query=new_query)
-    return urlunparse(new_parsed)
+    result = urlunparse(new_parsed)
+    logger.debug(
+        "Merged %d incoming params into base URL %s",
+        len(incoming_params),
+        parsed.netloc,
+    )
+    return result
 
 
 def get_or_create_redirect(
     lookup_dir: Path,
-    studies_file: Path,
+    studies: list[Study],
     params: dict[str, list[str]],
 ) -> str:
     """
@@ -54,21 +65,26 @@ def get_or_create_redirect(
     # Ensure lookup directory exists
     lookup_dir.mkdir(parents=True, exist_ok=True)
 
+    logger.debug("Opening hash file: %s", hash_file)
     with open(hash_file, "a+") as f:
         try:
+            logger.debug("Acquiring exclusive lock on %s", hash_file.name)
             fcntl.lockf(f, fcntl.LOCK_EX)
             f.seek(0)
             content = f.read().strip()
 
             if content:
+                logger.debug("Cache hit for hash %s", url_hash[:12])
                 return content
 
             # No existing redirect, create one
-            studies = parse_studies_file(studies_file)
+            logger.debug("Cache miss for hash %s, selecting new study", url_hash[:12])
             chosen = choose_study(studies)
             destination = merge_urls(chosen.url, params)
 
             f.write(destination + "\n")
+            logger.debug("Created new redirect: %s -> %s", url_hash[:12], chosen.url)
             return destination
         finally:
+            logger.debug("Releasing lock on %s", hash_file.name)
             fcntl.lockf(f, fcntl.LOCK_UN)

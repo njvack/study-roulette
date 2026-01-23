@@ -42,24 +42,52 @@ Runs the above algorithm, returns a 302 Found if this is found, or 500 if the al
 
 #### GET /health
 
-Checks to make sure we can read and write to `LOOKUP_DIR` and that `STUDIES_FILE` is readable and well-formed. Always returns a JSON string with the keys `status` and `errors`. If things are okay, return 200 OK with `status` = `'ok'` and `errors` = `[]`. If there are errors, return 500 with `status` = `'error'` and `errors` = `{array_of_error_strings}`.
+Checks to make sure we can read and write to `LOOKUP_DIR` and that `STUDIES_FILE` is readable and well-formed. Always returns a JSON object with the keys `status`, `errors`, and `studies`.
+
+If things are okay, returns 200 OK with:
+- `status` = `"ok"`
+- `errors` = `[]`
+- `studies` = array of `{url, weight, percent, note?}` objects showing the parsed studies
+
+If there are errors, returns 500 with:
+- `status` = `"error"`
+- `errors` = array of error strings
+- `studies` = array of any studies that *did* parse correctly
+
+The `studies` array is useful for verifying your TOML file is being parsed correctly. The `percent` field shows the normalized weight as a percentage, so you can easily see what fraction of new redirects will go to each study.
+
+**Note:** If some studies fail to parse but others are valid, `/health` returns 500 (for monitoring purposes) but still lists the valid studies. The `/sr` endpoint will continue to redirect to valid studies even when there are parse errors, ensuring service continuity.
 
 ### `STUDIES_FILE`
 
-This is a tab-delimited file with a header row and two columns, in this order:
+This is a TOML file containing a `studies` array. Each study must have `url` and `weight` keys, and may optionally have a `note` key. Extra keys are ignored.
 
-1. `URL` A URL to redirect to
-2. `weight` A weight for this URL
+Example:
 
-Lines are separated by either `\n` or `\r\n`. Both (sigh) can be mixed in the same file.
+```toml
+studies = [
+    {url = "https://redcap.example.edu/surveys/?s=12345678", weight = 1, note = "Control group"},
+    {url = "https://redcap.example.edu/surveys/?s=abcdef12", weight = 2, note = "Treatment group"},
+]
+```
 
-Lines starting with `#` are ignored. Empty lines are completely ignored.
+Or using the expanded TOML array-of-tables syntax:
 
-The file must contain at least one non-header, non-ignored row.
+```toml
+[[studies]]
+url = "https://redcap.example.edu/surveys/?s=12345678"
+weight = 1
+note = "Control group"
 
-URLs are stripped of whitespace and must be parsed correctly by urllib.parse.
+[[studies]]
+url = "https://redcap.example.edu/surveys/?s=abcdef12"
+weight = 2
+note = "Treatment group"
+```
 
-Weights must be nonnegative real numbers. Weights are relative -- all weights are divided by the total sum of the weights, so `[1, .5]` and `[100, 50]` will behave identically. A weight of 0 is valid and removes the URL from consideration in randomization. At least one weight must be positive.
+URLs must be valid (have a scheme and host) and parseable by `urllib.parse`.
+
+Weights must be nonnegative numbers. Weights are relative -- all weights are divided by the total sum of the weights, so `[1, 0.5]` and `[100, 50]` will behave identically. A weight of 0 is valid and removes the URL from consideration in randomization. At least one weight must be positive.
 
 ### `LOOKUP_DIR`
 

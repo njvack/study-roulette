@@ -1,0 +1,7 @@
+# Example studies file for Study Roulette
+# Copy this to studies.toml and modify as needed
+
+studies = [
+    {url = "https://www.google.com/search", weight = 1, note = "Google Search"},
+    {url = "https://duckduckgo.com/", weight = 2, note = "DuckDuckGo"},
+]
