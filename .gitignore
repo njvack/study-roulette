@@ -141,7 +141,6 @@ celerybeat.pid
 
 # Local data (lookups, studies file)
 data/
-!data/studies.example.tsv
 env/
 venv/
 ENV/
@@ -209,3 +208,11 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+# Deploying with cap, I don't like it but for now... yeah. Gonna exclude the config
+# from git though
+
+Capfile
+config/
+lib/capistrano

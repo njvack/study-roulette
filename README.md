@@ -36,9 +36,9 @@ URLs will be parsed, parameter merged, and generated using python's `urllib` mod
 
 ### Routes
 
-#### GET /sr
+#### GET /
 
-Runs the above algorithm, returns a 302 Found if this is found, or 500 if the algorithm fails for any reason
+Runs the above algorithm, returns a 302 Found if this is found, 404 if there are no parameters, 500 if the algorithm fails for any reason
 
 #### GET /health
 

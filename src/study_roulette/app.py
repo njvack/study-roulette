@@ -218,16 +218,18 @@ def build_app(settings: Settings | None = None) -> FastAPI:
                 params[key] = []
             params[key].append(value)
 
-        logger.debug("Parsed parameters: %s", params)
+        logger.debug(f"Parsed parameters: {params}")
 
         try:
             destination = roulette.get_or_create_redirect(params)
-            logger.debug("Redirecting to: %s", destination)
+            logger.debug(
+                f"Redirecting to: {destination}",
+            )
             return RedirectResponse(url=destination, status_code=302)
         except NoParamsError as e:
             return JSONResponse({"errors": [str(e)]}, status_code=404)
         except Exception as e:
-            logger.debug("Redirect failed with error: %s", e)
+            logger.debug(f"Redirect failed with error: {e}")
             return HealthResponse(roulette.with_error(str(e)))
 
     return app
