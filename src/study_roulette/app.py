@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from enum import Enum
@@ -106,18 +107,12 @@ class StudyRoulette(BaseModel):
             except OSError as e:
                 errors.append(f"Cannot read/write in LOOKUP_DIR: {e}")
 
-        # Parse studies file
-        if not studies_file.exists():
-            errors.append(f"STUDIES_FILE does not exist: {studies_file}")
-        elif not os.access(studies_file, os.R_OK):
-            errors.append(f"STUDIES_FILE is not readable: {studies_file}")
-        else:
-            try:
-                result = parse_studies_file(studies_file)
-                studies = result.studies
-                errors.extend(result.errors)
-            except StudiesFileError as e:
-                errors.append(str(e))
+        try:
+            result = parse_studies_file(studies_file)
+            studies = result.studies
+            errors.extend(result.errors)
+        except StudiesFileError as e:
+            errors.append(str(e))
 
         status = HealthStatus.ERROR if errors else HealthStatus.OK
 
@@ -169,7 +164,17 @@ class StudyRoulette(BaseModel):
         )
 
 
-class HealthResponse(JSONResponse):
+class PrettyJSONResponse(JSONResponse):
+    """
+    A human looking at the /health output is actually a normal thing to do
+    with this application, so we do want it to be readable
+    """
+
+    def render(self, content: Any) -> bytes:
+        return json.dumps(content, ensure_ascii=False, indent=2).encode()
+
+
+class HealthResponse(PrettyJSONResponse):
     """JSON response for health check and error conditions."""
 
     def __init__(self, roulette: StudyRoulette, **kwargs: Any):
