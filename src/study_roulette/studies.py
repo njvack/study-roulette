@@ -1,3 +1,4 @@
+from functools import lru_cache
 import logging
 import random
 import tomllib
@@ -31,7 +32,9 @@ class StudiesFileError(Exception):
 def parse_study_entry(entry: Any, index: int) -> Study:
     """Parse a single study entry from TOML, raising StudiesFileError on failure."""
     if not isinstance(entry, dict):
-        raise StudiesFileError(f"studies[{index}]: expected a table, got {type(entry).__name__}")
+        raise StudiesFileError(
+            f"studies[{index}]: expected a table, got {type(entry).__name__}"
+        )
 
     if "url" not in entry:
         raise StudiesFileError(f"studies[{index}]: missing required key 'url'")
@@ -51,7 +54,9 @@ def parse_study_entry(entry: Any, index: int) -> Study:
         raise StudiesFileError(f"studies[{index}]: 'weight' must be a number")
 
     if weight < 0:
-        raise StudiesFileError(f"studies[{index}]: weight must be non-negative, got {weight}")
+        raise StudiesFileError(
+            f"studies[{index}]: weight must be non-negative, got {weight}"
+        )
 
     note = entry.get("note")
     if note is not None:
@@ -60,7 +65,14 @@ def parse_study_entry(entry: Any, index: int) -> Study:
     return Study(url=url_str, weight=float(weight), note=note)
 
 
+# We cache this not because it is hard, but because it is trivial
 def parse_studies_file(path: Path) -> ParseResult:
+    mtime = path.stat().st_mtime_ns
+    return _parse_studies_file(mtime, path)
+
+
+@lru_cache(maxsize=1)
+def _parse_studies_file(mtime: int, path: Path) -> ParseResult:
     """
     Parse a TOML studies file and return valid studies and any errors.
 
