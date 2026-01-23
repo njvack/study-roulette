@@ -87,7 +87,7 @@ def test_health_returns_error_for_invalid_studies_file(
 
 
 def test_sr_redirects(client: TestClient) -> None:
-    response = client.get("/sr?email=foo@bar.com")
+    response = client.get("/?email=foo@bar.com")
 
     assert response.status_code == 302
     location = response.headers["location"]
@@ -97,22 +97,22 @@ def test_sr_redirects(client: TestClient) -> None:
 
 
 def test_sr_redirect_is_stable(client: TestClient) -> None:
-    req1 = client.get("/sr?email=foo@bar.com&ts=12345")
+    req1 = client.get("/?email=foo@bar.com&ts=12345")
     for _ in range(100):
-        req2 = client.get("/sr?email=foo@bar.com&ts=12345")
+        req2 = client.get("/?email=foo@bar.com&ts=12345")
         assert req1.headers.get("location") == req2.headers.get("location")
 
 
 def test_sr_different_params_can_differ(client: TestClient) -> None:
-    response1 = client.get("/sr?email=a@b.com")
-    response2 = client.get("/sr?email=x@y.com")
+    response1 = client.get("/?email=a@b.com")
+    response2 = client.get("/?email=x@y.com")
 
     # Locations differ because params differ
     assert response1.headers["location"] != response2.headers["location"]
 
 
 def test_sr_handles_multi_value_params(client: TestClient) -> None:
-    response = client.get("/sr?tag=a&tag=b")
+    response = client.get("/?tag=a&tag=b")
 
     assert response.status_code == 302
     location = response.headers["location"]
@@ -121,7 +121,7 @@ def test_sr_handles_multi_value_params(client: TestClient) -> None:
 
 
 def test_sr_with_no_params(client: TestClient) -> None:
-    response = client.get("/sr")
+    response = client.get("/")
 
     assert response.status_code == 404
 
@@ -161,7 +161,7 @@ def test_sr_distribution_matches_weights(
 
     counts = {"a": 0, "b": 0}
     for i in range(300):
-        response = client.get(f"/sr?id={i}")
+        response = client.get(f"/?id={i}")
         location = response.headers["location"]
         if "/a?" in location:
             counts["a"] += 1
@@ -241,7 +241,7 @@ studies = [
     app = build_app(settings)
     client = TestClient(app, follow_redirects=False)
 
-    response = client.get("/sr?id=123")
+    response = client.get("/?id=123")
 
     assert response.status_code == 302
     assert "example.com/valid" in response.headers["location"]

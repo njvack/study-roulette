@@ -189,7 +189,9 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     if settings is None:
         settings = Settings()  # type: ignore[call-arg]
     settings.configure_logging()
-    app = FastAPI(title="Study Roulette")
+    app = FastAPI(
+        title="Study Roulette", docs_url=None, redoc_url=None, openapi_url=None
+    )
 
     @app.get("/health")
     def health() -> HealthResponse:
@@ -198,7 +200,7 @@ def build_app(settings: Settings | None = None) -> FastAPI:
         )
         return HealthResponse(roulette)
 
-    @app.get("/sr")
+    @app.get("/")
     def redirect(request: Request) -> Response:
         logger.debug(
             "Received redirect request with query string: %s", request.url.query

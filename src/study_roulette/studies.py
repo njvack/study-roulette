@@ -67,7 +67,10 @@ def parse_study_entry(entry: Any, index: int) -> Study:
 
 # We cache this not because it is hard, but because it is trivial
 def parse_studies_file(path: Path) -> ParseResult:
-    mtime = path.stat().st_mtime_ns
+    try:
+        mtime = path.stat().st_mtime_ns
+    except Exception as e:
+        raise StudiesFileError(f"Cannot read studies file: {e}")
     return _parse_studies_file(mtime, path)
 
 
